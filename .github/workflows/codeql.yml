@@ -1,0 +1,98 @@
+name: "CodeQL Analysis"
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    
+    if: ${{ !contains(github.event.head_commit.message, 'Add SonarCloud workflow') }}
+    
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: 'javascript-typescript'
+            build-mode: 'none'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Java 21
+    - name: Setup Java for CodeQL
+      if: matrix.language == 'java-kotlin'
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+    
+    # --- BUILD INTELLIGENT (MAVEN + GRADLE) ---
+    # Este bloco detecta qual sistema o projeto usa
+    
+    - name: Build Java (Smart Detect)
+      if: matrix.language == 'java-kotlin'
+      run: |
+        echo "🔍 Iniciando varredura por arquivos de build..."
+        
+        # 1. Gradle Wrapper (Prioridade)
+        GRADLEW_PATH=$(find . -maxdepth 3 -name "gradlew" -type f | head -n 1)
+        
+        if [ -n "$GRADLEW_PATH" ]; then
+          echo "✅ Gradle Wrapper encontrado em: $GRADLEW_PATH"
+          BUILD_DIR=$(dirname "$GRADLEW_PATH")
+          cd "$BUILD_DIR"
+          chmod +x gradlew
+          # -x lint evita que erros de estilo quebrem o build
+          ./gradlew assembleDebug -x test -x lint --no-daemon
+          exit 0
+        fi
+
+        # 2. Maven (pom.xml)
+        POM_PATH=$(find . -maxdepth 3 -name "pom.xml" -type f | head -n 1)
+        
+        if [ -n "$POM_PATH" ]; then
+          echo "✅ Maven Project encontrado em: $POM_PATH"
+          mvn clean install -DskipTests -Dmaven.test.skip=true -f "$POM_PATH" --batch-mode
+          exit 0
+        fi
+
+        # 3. Gradle sem wrapper
+        GRADLE_FILE=$(find . -maxdepth 3 ( -name "build.gradle" -o -name "build.gradle.kts" ) -type f | head -n 1)
+
+        if [ -n "$GRADLE_FILE" ]; then
+           echo "✅ Gradle File encontrado em: $GRADLE_FILE"
+           BUILD_DIR=$(dirname "$GRADLE_FILE")
+           cd "$BUILD_DIR"
+           gradle assembleDebug -x test -x lint --no-daemon
+           exit 0
+        fi
+
+        echo "❌ Nenhum sistema de build Java reconhecido (Maven/Gradle) encontrado."
+        exit 1
+
+    # CASO 3: Para outras linguagens
+    - name: Autobuild (Non-Java)
+      if: matrix.language != 'java-kotlin'
+      uses: github/codeql-action/autobuild@v3
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
