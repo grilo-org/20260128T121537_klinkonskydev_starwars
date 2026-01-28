@@ -1,0 +1,45 @@
+{
+  "name": "starwars",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "biome:lint": "biome lint ./src",
+    "biome:format": "biome format ./src --write",
+    "biome:check": "biome check ./src",
+    "biome:check:apply": "biome check ./src --apply",
+    "cypress:open": "cypress open"
+  },
+  "dependencies": {
+    "@apollo/client": "^4.0.8",
+    "@happy-dom/global-registrator": "^20.0.10",
+    "@testing-library/jest-dom": "^6.9.1",
+    "graphql": "^16.11.0",
+    "graphql-tag": "^2.12.6",
+    "graphql-yoga": "^5.16.0",
+    "next": "16.0.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-responsive-pagination": "^2.11.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/bun": "latest",
+    "@types/node": "24.9.2",
+    "@types/react": "19.2.2",
+    "babel-plugin-react-compiler": "1.0.0",
+    "cypress": "^15.5.0",
+    "lefthook": "^2.0.2",
+    "tailwindcss": "^4",
+    "typescript": "5.9.3"
+  }
+}
